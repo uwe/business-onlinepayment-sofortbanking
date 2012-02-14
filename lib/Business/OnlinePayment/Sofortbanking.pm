@@ -11,8 +11,8 @@ use Digest::SHA;
 use URI;
 
 
-my @SUPPORTED_TYPES      = qw/CC/;
-my @SUPPORTED_ACTIONS    = ('Authorization Only', 'Post Authorization');
+my @SUPPORTED_TYPES      = qw/ECHECK/;
+my @SUPPORTED_ACTIONS    = ('Authorization Only');
 my @SUPPORTED_CURRENCIES = qw/EUR CHF GBP/;
 my @SUPPORTED_LANGUAGES  = qw/DE EN NL FR/;
 
@@ -43,11 +43,13 @@ my %PARAMETER = (
     project_password      => {required => 1},
 );
 
-my @INIT_PARAMETERS = qw/
-    user_id
-    project_id
-    project_password
-/;
+my %PARAMETER_MAP = (
+    description    => 'reason_1',
+    currency       => 'currency_id',
+    account_number => 'sender_account_number',
+    routing_code   => 'sender_bank_code',
+    account_name   => 'sender_holder',
+);
 
 my @HASH_ORDER = qw/
     user_id
@@ -69,6 +71,14 @@ my @HASH_ORDER = qw/
     project_password
 /;
 
+my %DEFAULT = (
+    server => 'www.sofort.com',
+    path   => '/payment/start',
+    port   => 443,
+    type   => $SUPPORTED_TYPES[0],
+    action => $SUPPORTED_ACTION[0],
+);
+
 
 sub _info {
     return {
@@ -86,12 +96,10 @@ sub _info {
 sub set_defaults {
     my ($self, %arg) = @_;
 
-    $self->{$_} = $arg{_} foreach (@INIT_PARAMETERS);
-
     # set defaults
-    $self->{server} ||= 'www.sofort.com';
-    $self->{path}   ||= '/payment/start';
-    $self->{port}   ||= 443;
+    while (my ($name, $default) = each %DEFAULT) {
+        $self->{$name} ||= $default;
+    }
 
     $self->build_subs(qw/popup_url/);
 }
@@ -103,13 +111,21 @@ sub submit {
 
     my %content = $self->content;
 
-    $content{$_} ||= $self->{$_} foreach (@INIT_PARAMETERS);
+    # apply default parameters
+    $content{$_} ||= $self->{$_} foreach (keys %DEFAULT);
 
     die 'unsupported type - only: ' . join(', ', @SUPPORTED_TYPES)
         unless $SUPPORTED_TYPE{$content{type}};
 
     die 'unsupported action - only: ' . join(', ', @SUPPORTED_ACTIONS)
         unless $SUPPORTED_ACTION{$content{action}};
+
+    # parameter mapping
+    while (my ($old_field, $new_field) = each %PARAMETER_MAP) {
+        $content{$new_field} ||= $content{$old_field};
+    }
+    # standard processor fields
+    $content{user_id} ||= $self->login;
 
     # parameter checking
     my %param = ();
@@ -191,16 +207,12 @@ Business::OnlinePayment::Sofortbanking - sofort.com sofortbanking/sofortueberwei
 
   use Business::OnlinePayment;
 
-  my $tx = Business::OnlinePayment->new(
-      'Sofortbanking',
-      user_id          => $user_id,
-      project_id       => $project_id,
-      project_password => $secret,
-  );
+  my $tx = Business::OnlinePayment->new('Sofortbanking');
 
   $tx->content(
-      type                  => 'CC',           # fake
-      action                => 'Authorization Only',
+      user_id               => 12345,
+      project_id            => 123456,
+      project_password      => 'secret',
       amount                => '2.75',
       currency_id           => 'EUR',
       reason_1              => 'Invoice: 1234',
