@@ -76,7 +76,7 @@ my %DEFAULT = (
     path   => '/payment/start',
     port   => 443,
     type   => $SUPPORTED_TYPES[0],
-    action => $SUPPORTED_ACTION[0],
+    action => $SUPPORTED_ACTIONS[0],
 );
 
 
