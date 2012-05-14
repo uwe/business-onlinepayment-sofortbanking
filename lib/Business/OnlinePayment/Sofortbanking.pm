@@ -125,7 +125,7 @@ sub submit {
         $content{$new_field} ||= $content{$old_field};
     }
     # standard processor fields
-    $content{user_id} ||= $self->login;
+    $content{user_id} ||= $content{login};
 
     # parameter checking
     my %param = ();
