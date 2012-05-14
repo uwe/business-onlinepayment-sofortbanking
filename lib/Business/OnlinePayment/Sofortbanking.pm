@@ -216,7 +216,7 @@ Business::OnlinePayment::Sofortbanking - sofort.com sofortbanking/sofortueberwei
       amount                => '2.75',
       currency_id           => 'EUR',
       reason_1              => 'Invoice: 1234',
-      resaon_2              => 'Order date: 01/01/2012',
+      reason_2              => 'Order date: 01/01/2012',
       sender_holder         => 'John Doe',
       sender_bank_code      => 88888888,       # demo bank
       sender_account_number => 12345678,
